@@ -1,0 +1,3 @@
+## .sh controller
+
+npm i
