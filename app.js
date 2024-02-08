@@ -40,9 +40,10 @@ app.get('/:test', isAuth, (req, res) => {
     res.send('Bad request!');
   }
 
+  // curl localhost:3000/script.sh --header "Authorization: Basic YWRtaW46YWRtaW4="
   let { spawn } = require('child_process');
-  // let ls = spawn('echo', ['cy:run-' + test, param], {cwd: '/'});
-  let ls = spawn('yarn', ['install'], {cwd: '/path/to/sh/scripts'});
+  let ls = spawn('echo', ['123' + test], {cwd: '/'});
+  // let ls = spawn('ls', ['-ls'], {cwd: '/Users/padi/git/isv/isv-work/sh-controller'});
 
 
   ls.on('exit', function (code, signal) {
