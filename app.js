@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 const port = 3000;
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
 
 function isAuth(req, res, next) {
     const base64auth = (req.headers.authorization || '').split(' ')[1] || ''
@@ -23,38 +25,66 @@ const op_list = "\nEndpoint-uri disponibile: \n " +
                 "1. test1 \n\n "
 
 const tests = ({
-  'script.sh': 'script.sh',
-  2: 'Two',
-  3: 'Three'
+  'script1.sh': 'script1.sh',
+  'script2.sh': 'script2.sh',
+  'script3.sh': 'script3.sh'
 })
 
 app.get('/', isAuth, (req, res) => {
   res.send(hi_msg + op_list);
 });
 
-app.get('/:test', isAuth, (req, res) => {
-  let test = tests[req.params.test]
+app.post('/run/:scriptName', isAuth, async (req, res) => {
+  const scriptName = req.params.scriptName;
 
-  if (test == 'undefined'){
-    res.status(400);
-    res.send('Bad request!');
+  // Verifică dacă scriptul specificat este disponibil
+  if (!(scriptName in tests)) {
+    res.status(400).send('Bad request! Scriptul specificat nu există');
+    return;
   }
 
   // curl localhost:3000/script.sh --header "Authorization: Basic YWRtaW46YWRtaW4="
   let { spawn } = require('child_process');
-  let ls = spawn('echo', ['123' + test], {cwd: '/'});
-  // let ls = spawn('ls', ['-ls'], {cwd: '/Users/padi/git/isv/isv-work/sh-controller'});
+  // let ls = spawn('echo', ['123' + scriptName], {cwd: '/'});
 
+  console.log(`Start executing ${scriptName}`);
+  let ls = spawn('/bin/bash', [`./${scriptName}`], {cwd: '/Users/maria/git/sh-controller/scripts'});
 
   ls.on('exit', function (code, signal) {
-    console.log('child process exited with ' +
-                `code ${code} and signal ${signal}`);
-  });
+        console.log('child process exited with ' +
+            `code ${code} and signal ${signal}`);
 
-  ls.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`);
-    // res.status(200).send(data);
-  });
+        let statusData = {};
+
+        // Verifică codul de ieșire al procesului pentru a determina starea execuției
+        if (code === 0) {
+            console.log('Script executed successfully');
+            // Setează statusul ca 'success' sau 'completed' în obiectul statusData
+            statusData = {
+                script: scriptName,
+                status: 'success'
+            };
+        } else {
+            console.error('Script execution encountered an error');
+            // Setează statusul ca 'error' sau 'failed' în obiectul statusData
+            statusData = {
+                script: scriptName,
+                status: 'error'
+            };
+        }
+
+        // POST status - endpoint-ul /status
+        fetch('http://localhost:3000/status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(statusData)
+        }).catch(err => console.error('Error posting status:', err));
+
+        res.status(200).json({ message: "FINISHED", statusData });
+        console.log(`Finished executing ${scriptName}`);
+    });
 
   ls.stderr.on('data', (data) => {
     console.error(`stderr: ${data}`);
@@ -68,10 +98,13 @@ app.get('/:test', isAuth, (req, res) => {
     console.log('child process exited with ' +
                 `code ${code} and signal ${signal}`);
   });
-
-  res.status(200).send({ message: "123" });
-
   // res.send('Hello World ! ' + tests[req.params.test]);
+});
+
+app.post('/status', (req, res) => {
+  const statusData = req.body;
+  console.log('Received status:', statusData);
+  res.status(200).send('Status received');
 });
 
 app.listen(port, () => {
