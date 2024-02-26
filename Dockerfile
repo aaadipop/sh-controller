@@ -1,12 +1,15 @@
-FROM node:latest
+FROM node:hydrogen-alpine3.19
 
 # Setăm directorul de lucru în interiorul containerului
 WORKDIR /app
 
 # Copiem pachetul de dependențe și fișierele necesare
-COPY package.json package-lock.json /app/
+COPY package.json /app/
 
 RUN npm install
+
+# Copiem scripturile în directorul de lucru
+COPY scripts/ /app/scripts/
 
 # Copiem codul sursă al aplicației în directorul de lucru
 COPY . /app

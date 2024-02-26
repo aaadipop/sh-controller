@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "Start script2.sh" >> /Users/maria/git/sh-controller/log.txt
+echo "Start script2.sh" >> log.txt
 # Restul comenzilor
-echo "Execuție mai îndelungată" >> /Users/maria/git/sh-controller/log.txt
+echo "Execuție mai îndelungată" >> log.txt
 sleep 10
-echo "End script2.sh" >> /Users/maria/git/sh-controller/log.txt
+echo "End script2.sh" >> log.txt

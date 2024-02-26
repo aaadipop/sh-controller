@@ -4,6 +4,28 @@ const port = 3000;
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
+const hi_msg = "\n\.sh controller \n\n"
+
+let tests = {
+  'script1.sh': 'script1.sh',
+  'script2.sh': 'script2.sh',
+  'script3.sh': 'script3.sh'
+};
+
+function generateOpList(tests) {
+  let op_list = "\nEndpoint-uri disponibile: \n " +
+                "/test_name \t\tporneste test-ul specificat \n\n" +
+                "\n\nTeste disponibile: \n";
+
+  for (const test in tests) {
+    op_list += `${tests[test]}. ${test}\n`;
+  }
+
+  return op_list;
+}
+
+let op_list = generateOpList(tests);
+
 function isAuth(req, res, next) {
     const base64auth = (req.headers.authorization || '').split(' ')[1] || ''
     const [username, password] = Buffer.from(base64auth, 'base64').toString().split(':')
@@ -16,19 +38,6 @@ function isAuth(req, res, next) {
       res.send('Access forbidden');
     }
 }
-
-const hi_msg = "\n\.sh controller \n\n"
-
-const op_list = "\nEndpoint-uri disponibile: \n " +
-                "/test_name \t\tporneste test-ul specificat \n\n" +
-                "\n\nTeste disponibile: \n" +
-                "1. test1 \n\n "
-
-const tests = ({
-  'script1.sh': 'script1.sh',
-  'script2.sh': 'script2.sh',
-  'script3.sh': 'script3.sh'
-})
 
 app.get('/', isAuth, (req, res) => {
   res.send(hi_msg + op_list);
@@ -43,12 +52,16 @@ app.post('/run/:scriptName', isAuth, async (req, res) => {
     return;
   }
 
-  // curl localhost:3000/script.sh --header "Authorization: Basic YWRtaW46YWRtaW4="
   let { spawn } = require('child_process');
-  // let ls = spawn('echo', ['123' + scriptName], {cwd: '/'});
+  const path = require('path');
+
+  // Directorul de lucru pentru scripturi
+  const scriptsDir = path.join(__dirname, 'scripts');
+
+  // Comanda pentru a executa scriptul specificat
+  let ls = spawn('/bin/sh', [`${scriptName}`], {cwd: scriptsDir});
 
   console.log(`Start executing ${scriptName}`);
-  let ls = spawn('/bin/bash', [`./${scriptName}`], {cwd: '/Users/maria/git/sh-controller/scripts'});
 
   ls.on('exit', function (code, signal) {
         console.log('child process exited with ' +
@@ -98,7 +111,6 @@ app.post('/run/:scriptName', isAuth, async (req, res) => {
     console.log('child process exited with ' +
                 `code ${code} and signal ${signal}`);
   });
-  // res.send('Hello World ! ' + tests[req.params.test]);
 });
 
 app.post('/status', (req, res) => {

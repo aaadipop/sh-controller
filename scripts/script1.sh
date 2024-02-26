@@ -1,7 +1,7 @@
 #!/bin/bash
-echo "Start script1.sh" >> /Users/maria/git/sh-controller/log.txt
+echo "Start script1.sh" >> log.txt
 # Restul comenzilor
-echo "Execuție rapida" >> /Users/maria/git/sh-controller/log.txt
+echo "Execuție rapida" >> log.txt
 
-echo "End script1.sh" >> /Users/maria/git/sh-controller/log.txt
+echo "End script1.sh" >> log.txt
 exit 0

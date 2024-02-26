@@ -1,0 +1,9 @@
+Start script2.sh
+Execuție mai îndelungată
+End script2.sh
+Start script2.sh
+Execuție mai îndelungată
+End script2.sh
+Start script1.sh
+Execuție rapida
+End script1.sh
