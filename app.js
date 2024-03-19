@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const port = 3000;
+const port = 3001;
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
@@ -30,7 +30,6 @@ function isAuth(req, res, next) {
     const base64auth = (req.headers.authorization || '').split(' ')[1] || ''
     const [username, password] = Buffer.from(base64auth, 'base64').toString().split(':')
 
-    // if (username && password && username === process.env.AUTH_USERNAME && password === process.env.AUTH_PASSWORD) {
     if (username && password && username === 'admin' && password === 'admin') {
       next();
     } else {
@@ -50,6 +49,8 @@ app.post('/run/:scriptName', isAuth, async (req, res) => {
   if (!(scriptName in tests)) {
     res.status(400).send('Bad request! Scriptul specificat nu există');
     return;
+  } else {
+     res.status(200).json({script: scriptName, status: 'started'});
   }
 
   let { spawn } = require('child_process');
@@ -60,14 +61,14 @@ app.post('/run/:scriptName', isAuth, async (req, res) => {
 
   // Comanda pentru a executa scriptul specificat
   let ls = spawn('/bin/sh', [`${scriptName}`], {cwd: scriptsDir});
+  let isError = false;
+  let statusData;
 
   console.log(`Start executing ${scriptName}`);
 
   ls.on('exit', function (code, signal) {
         console.log('child process exited with ' +
             `code ${code} and signal ${signal}`);
-
-        let statusData = {};
 
         // Verifică codul de ieșire al procesului pentru a determina starea execuției
         if (code === 0) {
@@ -77,31 +78,26 @@ app.post('/run/:scriptName', isAuth, async (req, res) => {
                 script: scriptName,
                 status: 'success'
             };
+            sendStatus(statusData);
         } else {
             console.error('Script execution encountered an error');
-            // Setează statusul ca 'error' sau 'failed' în obiectul statusData
-            statusData = {
-                script: scriptName,
-                status: 'error'
-            };
         }
 
-        // POST status - endpoint-ul /status
-        fetch('http://localhost:3000/status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(statusData)
-        }).catch(err => console.error('Error posting status:', err));
-
-        res.status(200).json({ message: "FINISHED", statusData });
         console.log(`Finished executing ${scriptName}`);
     });
 
   ls.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
-  });
+        console.error(`stderr: ${data}`);
+
+        // Dacă primești date pe canalul de eroare standard (stderr), setează statusul ca "error"
+        statusData = {
+            script: scriptName,
+            status: 'error',
+            error: data.toString
+        };
+
+        sendStatus(statusData);
+    });
 
   ls.stdout.on('close', (data) => {
     console.error(`close: ${data}`);
@@ -112,6 +108,17 @@ app.post('/run/:scriptName', isAuth, async (req, res) => {
                 `code ${code} and signal ${signal}`);
   });
 });
+
+function sendStatus (statusData){
+      // POST status - endpoint-ul /status
+        fetch('http://localhost:3001/status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(statusData)
+        }).catch(err => console.error('Error posting status:', err));
+}
 
 app.post('/status', (req, res) => {
   const statusData = req.body;
